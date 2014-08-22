@@ -78,7 +78,7 @@ func (box *Box) Auth() error {
 // doRequest performs the request (GET or POST) using authorized http
 // client. You can also pass params to encode them in the request url
 // or body to place in the request body.
-func (box *Box) doRequest(method, path string, params *url.Values, reqBody string) ([]byte, error) {
+func (box *Box) doRequest(method, path string, params *url.Values, reqBody []byte) ([]byte, error) {
 	var body []byte
 	var rawurl string
 	var response *http.Response
@@ -94,7 +94,7 @@ func (box *Box) doRequest(method, path string, params *url.Values, reqBody strin
 	}
 
 	// If reqBody is empty then dont create new reader
-	if reqBody != "" {
+	if reqBody != nil {
 		reqBodyReader = bytes.NewReader([]byte(reqBody))
 	}
 
@@ -118,7 +118,7 @@ func getResponse(r *http.Response) ([]byte, error) {
 		return nil, err
 	}
 	switch r.StatusCode {
-	case http.StatusOK, http.StatusCreated, http.StatusAccepted:
+	case http.StatusOK, http.StatusCreated, http.StatusAccepted, http.StatusNoContent:
 		return b, nil
 	}
 	return nil, errors.New(fmt.Sprintf("unexpected HTTP status code %d", r.StatusCode))

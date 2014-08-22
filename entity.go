@@ -78,21 +78,21 @@ type Collection struct {
 }
 
 type BoxLock struct {
-	Id        string  `json:"id,omitempty"`
-	CreatedBy string  `json:"created_by,omitempty"`
-	CreatedAt BoxTime `json:"created_at,omitempty"`
-	ExpiresAt BoxTime `json:"expires_at,omitempty"`
-	Download  bool    `json:"is_download_prevented,omitempty"`
+	Id        string   `json:"id,omitempty"`
+	CreatedBy string   `json:"created_by,omitempty"`
+	CreatedAt *BoxTime `json:"created_at,omitempty"`
+	ExpiresAt *BoxTime `json:"expires_at,omitempty"`
+	Download  bool     `json:"is_download_prevented,omitempty"`
 }
 
 type SharedObject struct {
-	Url           string     `json:"url,omitempty"`
-	DownloadUrl   string     `json:"download_url,omitempty"`
-	VanityUrl     string     `json:"vanity_url,omitempty"`
-	HasPassword   bool       `json:"is_password_enabled,omitempty"`
-	UnsharedAt    BoxTime    `json:"unshared_at,omitempty"`
-	DownloadCount int        `json:"download_count,omitempty"`
-	PreviewCount  int        `json:"preview_count,omitempty"`
-	Access        string     `json:"access,omitempty"`
-	Permission    Permission `json:"permissions,omitempty"`
+	Url           string      `json:"url,omitempty"`
+	DownloadUrl   string      `json:"download_url,omitempty"`
+	VanityUrl     string      `json:"vanity_url,omitempty"`
+	HasPassword   bool        `json:"is_password_enabled,omitempty"`
+	UnsharedAt    *BoxTime    `json:"unshared_at,omitempty"`
+	DownloadCount int         `json:"download_count,omitempty"`
+	PreviewCount  int         `json:"preview_count,omitempty"`
+	Access        string      `json:"access,omitempty"`
+	Permission    *Permission `json:"permissions,omitempty"`
 }
