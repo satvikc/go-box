@@ -1,5 +1,11 @@
 package box
 
+import (
+	"encoding/json"
+	"fmt"
+	"net/url"
+)
+
 type Folder struct {
 	Id                string       `json:"id,omitempty"`                  // The folder’s ID.
 	SequenceId        string       `json:"sequence_id,omitempty"`         // A unique ID for use with the /events endpoint.
@@ -26,4 +32,35 @@ type Folder struct {
 	SyncStatus        string       `json:"sync_status,omitempty"`         // Whether this folder will be synced by the Box sync clients or not. Can be
 	ItemCollection    Collection   `json:"item_collection,omitempty"`     // A collection of mini file and folder objects contained in this folder.
 	FolderUploadEmail string       `json:"folder_upload_email,omitempty"` // The upload email address for this folder. Null if not set.
+}
+
+// CreateFolder creates the folder name under the folder having
+// parentid as id. It also returns the created Folder.
+func (box *Box) CreateFolder(parentid, name string) (*Folder, error) {
+	var rv Folder
+	reqBody := fmt.Sprintf(`{"name":"%s", "parent": {"id" : "%s"}}`, name, parentid)
+	body, err := box.doRequest("POST", "folders", nil, reqBody)
+	if err == nil {
+		err = json.Unmarshal(body, &rv)
+		return &rv, err
+	}
+	return nil, err
+}
+
+// GetFolder returns the Folder with the given id,
+func (box *Box) GetFolder(id string) (*Folder, error) {
+	var rv Folder
+	rawurl := fmt.Sprintf("folders/%s", id)
+	body, err := box.doRequest("GET", rawurl, nil, "")
+	if err == nil {
+		err = json.Unmarshal(body, &rv)
+		return &rv, err
+	}
+	return nil, err
+}
+
+func (box *Box) DeleteFolder(id string) error {
+	rawurl := fmt.Sprintf("folders/%s", id)
+	_, err := box.doRequest("DELETE", rawurl, &url.Values{"recursive": {"true"}}, "")
+	return err
 }

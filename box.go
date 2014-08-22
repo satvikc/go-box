@@ -2,7 +2,6 @@ package box
 
 import (
 	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/golang/oauth2"
@@ -79,7 +78,7 @@ func (box *Box) Auth() error {
 // doRequest performs the request (GET or POST) using authorized http
 // client. You can also pass params to encode them in the request url
 // or body to place in the request body.
-func (box *Box) doRequest(method, path string, params *url.Values, reqBody string, receiver interface{}) error {
+func (box *Box) doRequest(method, path string, params *url.Values, reqBody string) ([]byte, error) {
 	var body []byte
 	var rawurl string
 	var response *http.Response
@@ -100,34 +99,16 @@ func (box *Box) doRequest(method, path string, params *url.Values, reqBody strin
 	}
 
 	if request, err = http.NewRequest(method, rawurl, reqBodyReader); err != nil {
-		return err
+		return nil, err
 	}
 	if response, err = box.client().Do(request); err != nil {
-		return err
+		return nil, err
 	}
 	defer response.Body.Close()
 	if body, err = getResponse(response); err != nil {
-		return err
+		return nil, err
 	}
-	err = json.Unmarshal(body, receiver)
-	return err
-}
-
-// CreateFolder creates the folder name under the folder having
-// parentid as id. It also returns the created Folder.
-func (box *Box) CreateFolder(parentid, name string) (*Folder, error) {
-	var rv Folder
-	body := fmt.Sprintf(`{"name":"%s", "parent": {"id" : "%s"}}`, name, parentid)
-	err := box.doRequest("POST", "folders", nil, body, &rv)
-	return &rv, err
-}
-
-// GetFolder returns the Folder with the given id,
-func (box *Box) GetFolder(id string) (*Folder, error) {
-	var rv Folder
-	rawurl := fmt.Sprintf("folders/%s", id)
-	err := box.doRequest("GET", rawurl, nil, "", &rv)
-	return &rv, err
+	return body, nil
 }
 
 func getResponse(r *http.Response) ([]byte, error) {
