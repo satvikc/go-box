@@ -21,7 +21,11 @@ The supported features include
 
     * Following file operations:
 
-        * 
+        * Get
+        * Delete
+        * Rename
+        * Move
+        * Copy
 
 
 TODO
