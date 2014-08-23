@@ -8,7 +8,7 @@ It is still a work in progress.
 The supported features include
 
     * Oauth2 authorization
-    * Basic folder operations:
+    * Following folder operations:
 
         * Get
         * Create
@@ -16,6 +16,12 @@ The supported features include
         * Rename
         * Move
         * Copy
+        * Share
+        * Unshare
+
+    * Following file operations:
+
+        * 
 
 
 TODO

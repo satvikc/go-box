@@ -159,3 +159,47 @@ func (f *Folder) Copy(box *Box, parent *Folder) (*Folder, error) {
 	return nil, err
 
 }
+
+// Share creates a share link. download and preview sets appropriate
+// permissions on the shared link. It only supports open sharing. Note
+// that only folder Id is required apriori. The folder is populated
+// with all the information after the call. You can get the
+// SharedObject by accessing appropriate field of the folder.
+func (f *Folder) Share(box *Box, download, preview bool) error {
+	if f.Id == "" {
+		return errors.New("Empty id while using Share")
+	}
+
+	fold := Folder{SharedLink: &SharedObject{Access: "open",
+		Permission: &Permission{Download: download, Preview: preview}}}
+
+	reqBody, _ := json.Marshal(fold)
+
+	rawurl := fmt.Sprintf("folders/%s", f.Id)
+	body, err := box.doRequest("PUT", rawurl, nil, reqBody)
+
+	if err == nil {
+		err = json.Unmarshal(body, f)
+		return err
+	}
+	return err
+
+}
+
+// Unshare invalidates the shared link of the folder.
+func (f *Folder) Unshare(box *Box) error {
+	if f.Id == "" {
+		return errors.New("Empty id while using Share")
+	}
+
+	reqBody := []byte(`{"shared_link" : null }`)
+
+	rawurl := fmt.Sprintf("folders/%s", f.Id)
+	body, err := box.doRequest("PUT", rawurl, nil, reqBody)
+
+	if err == nil {
+		err = json.Unmarshal(body, f)
+		return err
+	}
+	return err
+}
