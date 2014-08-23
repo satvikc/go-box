@@ -96,3 +96,8 @@ type SharedObject struct {
 	Access        string      `json:"access,omitempty"`
 	Permission    *Permission `json:"permissions,omitempty"`
 }
+
+type UploadEmail struct {
+	Access string `json:"access,omitempty"`
+	Email  string `json:"email,omitempty"`
+}

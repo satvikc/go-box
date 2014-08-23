@@ -32,7 +32,7 @@ type Folder struct {
 	HasCollaborations bool          `json:"has_collaborations,omitempty"`  // Whether this folder has any collaborators.
 	SyncStatus        string        `json:"sync_status,omitempty"`         // Whether this folder will be synced by the Box sync clients or not. Can be
 	ItemCollection    *Collection   `json:"item_collection,omitempty"`     // A collection of mini file and folder objects contained in this folder.
-	FolderUploadEmail string        `json:"folder_upload_email,omitempty"` // The upload email address for this folder. Null if not set.
+	FolderUploadEmail *UploadEmail  `json:"folder_upload_email,omitempty"` // The upload email address for this folder. Null if not set.
 }
 
 // Items returns all items (folder or files) under the given
