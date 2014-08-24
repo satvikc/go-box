@@ -26,6 +26,7 @@ The supported features include
         * Rename
         * Move
         * Copy
+        * Upload
 
 
 TODO
@@ -33,4 +34,4 @@ TODO
 
 * Tests
 * Example code
-* File operations, sharing etc. Basically rest of the box api
+* Rest of the box api
