@@ -13,17 +13,17 @@ import (
 
 // Box Client
 type Box struct {
-	APIURL    string
-	UPLOADURL string
-	config    *oauth2.Config
-	token     *oauth2.Token
+	APIURL       string
+	APIUPLOADURL string
+	config       *oauth2.Config
+	token        *oauth2.Token
 }
 
 // NewBox gets the new Box object with appropriate APIURL.
 func NewBox() *Box {
 	box := &Box{
-		APIURL:    "https://api.box.com/2.0",
-		UPLOADURL: "https://upload.box.com/api/2.0",
+		APIURL:       "https://api.box.com/2.0",
+		APIUPLOADURL: "https://upload.box.com/api/2.0",
 	}
 	return box
 }

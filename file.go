@@ -1,9 +1,15 @@
 package box
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"mime/multipart"
+	"net/http"
+	"os"
+	"path/filepath"
 )
 
 type File struct {
@@ -126,5 +132,62 @@ func (f *File) Copy(box *Box, parent *Folder) (*File, error) {
 		return &file, err
 	}
 	return nil, err
+
+}
+
+// UploadFile uploads the file at the given file path. It then fills
+// the information of the recently uploaded file in the file object.
+// Only Id is required for the parent folder.
+func (f *File) UploadFile(box *Box, path string, parent *Folder) error {
+	file, err := os.Open(path)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	part, err := writer.CreateFormFile("filename", filepath.Base(path))
+	if err != nil {
+		return err
+	}
+	_, err = io.Copy(part, file)
+
+	writer.WriteField("parent_id", parent.Id)
+	// only throws path error which is already checked while opening the
+	// file. Only problem is if the file is deleted in between.
+	stat, _ := os.Stat(path)
+	modTime, _ := BoxTime(stat.ModTime()).MarshalJSON()
+	writer.WriteField("content_modified_at", string(modTime))
+
+	err = writer.Close()
+	if err != nil {
+		return err
+	}
+
+	rawurl := fmt.Sprintf("%s/files/content", box.APIUPLOADURL)
+
+	// Create mutlipart request
+	request, err := http.NewRequest("POST", rawurl, body)
+	if err != nil {
+		return err
+	}
+
+	// Get response
+	var response *http.Response
+	if response, err = box.client().Do(request); err != nil {
+		return err
+	}
+	defer response.Body.Close()
+
+	// Get response body
+	var respBody []byte
+	if respBody, err = getResponse(response); err != nil {
+		return err
+	}
+
+	// Unmarshal returned file
+	err = json.Unmarshal(respBody, f)
+	return err
 
 }
