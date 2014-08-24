@@ -135,10 +135,14 @@ func (f *File) Copy(box *Box, parent *Folder) (*File, error) {
 
 }
 
-// UploadFile uploads the file at the given file path. It then fills
-// the information of the recently uploaded file in the file object.
-// Only Id is required for the parent folder.
+// UploadFile uploads the file at the given file path. The file name
+// on the box server is taken from the Name attribute of file
+// object. If it is nil then the name of the file is used. After
+// upload, it then fills the information of the recently uploaded file
+// in the file object. Note that only Id attribute is required for the
+// parent folder.
 func (f *File) UploadFile(box *Box, path string, parent *Folder) error {
+	var name string
 	file, err := os.Open(path)
 	if err != nil {
 		return err
@@ -147,28 +151,36 @@ func (f *File) UploadFile(box *Box, path string, parent *Folder) error {
 
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
-	part, err := writer.CreateFormFile("filename", filepath.Base(path))
+	if f.Name == "" {
+		name = filepath.Base(path)
+	} else {
+		name = f.Name
+	}
+	fmt.Println(name)
+	part, err := writer.CreateFormFile("filename", name)
 	if err != nil {
 		return err
 	}
 	_, err = io.Copy(part, file)
 
 	writer.WriteField("parent_id", parent.Id)
-	// only throws path error which is already checked while opening the
-	// file. Only problem is if the file is deleted in between.
-	stat, _ := os.Stat(path)
-	modTime, _ := BoxTime(stat.ModTime()).MarshalJSON()
-	writer.WriteField("content_modified_at", string(modTime))
-
-	err = writer.Close()
-	if err != nil {
-		return err
-	}
 
 	rawurl := fmt.Sprintf("%s/files/content", box.APIUPLOADURL)
 
 	// Create mutlipart request
 	request, err := http.NewRequest("POST", rawurl, body)
+	if err != nil {
+		return err
+	}
+
+	request.Header.Add("Content-Type", writer.FormDataContentType())
+
+	err = writer.Close()
+	if err != nil {
+		return err
+	}
+	// Was giving error without this as it was setting wrong content length
+	request.ContentLength = -1
 	if err != nil {
 		return err
 	}
@@ -186,8 +198,23 @@ func (f *File) UploadFile(box *Box, path string, parent *Folder) error {
 		return err
 	}
 
-	// Unmarshal returned file
-	err = json.Unmarshal(respBody, f)
-	return err
-
+	// All because of weird box's return format
+	var m map[string]json.RawMessage
+	err = json.Unmarshal(respBody, &m)
+	if err != nil {
+		return err
+	}
+	var fs []json.RawMessage
+	err = json.Unmarshal(m["entries"], &fs)
+	if err != nil {
+		return err
+	}
+	if len(fs) != 1 {
+		return errors.New("Not enough returned argument")
+	}
+	err = json.Unmarshal(fs[0], f)
+	if err != nil {
+		return err
+	}
+	return nil
 }
