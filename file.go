@@ -66,6 +66,10 @@ func (f *File) Delete(box *Box) error {
 	rawurl := fmt.Sprintf("files/%s", f.Id)
 	_, err := box.doRequest("DELETE", rawurl, nil, nil)
 
+	if err == NO_CONTENT {
+		return nil
+	}
+
 	return err
 }
 
@@ -135,36 +139,80 @@ func (f *File) Copy(box *Box, parent *Folder) (*File, error) {
 
 }
 
-// UploadFile uploads the file at the given file path. The file name
-// on the box server is taken from the Name attribute of file
-// object. If it is nil then the name of the file is used. After
-// upload, it then fills the information of the recently uploaded file
-// in the file object. Note that only Id attribute is required for the
-// parent folder.
-func (f *File) UploadFile(box *Box, path string, parent *Folder) error {
-	var name string
-	file, err := os.Open(path)
+// Download downloads the file. Note that only file id is required
+// apriori.
+func (f *File) Download(box *Box, writer io.Writer) error {
+	var request *http.Request
+	var response *http.Response
+	var err error
+
+	if f.Id == "" {
+		return errors.New("Empty id while using Download")
+	}
+
+	rawurl := fmt.Sprintf("%s/files/%s/content", box.APIURL, f.Id)
+
+	if request, err = http.NewRequest("GET", rawurl, nil); err != nil {
+		return err
+	}
+
+	if response, err = box.client().Do(request); err != nil {
+		return err
+	}
+
+	defer response.Body.Close()
+
+	_, err = io.Copy(writer, response.Body)
+
+	return err
+
+}
+
+// Download downloads the file at the given file path. File will be
+// overwritten if it already exists. Note that only file id is
+// required apriori.
+func (f *File) DownloadFile(box *Box, path string) error {
+	out, err := os.Create("foo.txt")
+	defer out.Close()
 	if err != nil {
 		return err
 	}
-	defer file.Close()
+	return f.Download(box, out)
+}
 
+// Upload uploads the file (given by the reader) at the given file
+// path. The file name on the box server is taken from the Name
+// attribute of file object. After upload, it then fills the
+// information of the recently uploaded file in the file object. Note
+// that Id attribute is required for the parent folder.
+func (f *File) Upload(box *Box, reader io.Reader, parent *Folder) error {
+
+	// Check is f has name attribute and parent has id attribute
+	if f.Name == "" {
+		return errors.New("Empty name while using Upload")
+	}
+
+	if parent.Id == "" {
+		return errors.New("Empty parent id while using Upload")
+	}
+
+	// Set up multipart writer
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
-	if f.Name == "" {
-		name = filepath.Base(path)
-	} else {
-		name = f.Name
-	}
-	fmt.Println(name)
-	part, err := writer.CreateFormFile("filename", name)
+
+	part, err := writer.CreateFormFile("filename", f.Name)
 	if err != nil {
 		return err
 	}
-	_, err = io.Copy(part, file)
 
+	if _, err = io.Copy(part, reader); err != nil {
+		return err
+	}
+
+	// Write parent id
 	writer.WriteField("parent_id", parent.Id)
 
+	// API url
 	rawurl := fmt.Sprintf("%s/files/content", box.APIUPLOADURL)
 
 	// Create mutlipart request
@@ -175,15 +223,11 @@ func (f *File) UploadFile(box *Box, path string, parent *Folder) error {
 
 	request.Header.Add("Content-Type", writer.FormDataContentType())
 
-	err = writer.Close()
-	if err != nil {
+	if err = writer.Close(); err != nil {
 		return err
 	}
-	// Was giving error without this as it was setting wrong content length
+	// Was giving error without this as it was setting wrong content-length
 	request.ContentLength = -1
-	if err != nil {
-		return err
-	}
 
 	// Get response
 	var response *http.Response
@@ -194,11 +238,11 @@ func (f *File) UploadFile(box *Box, path string, parent *Folder) error {
 
 	// Get response body
 	var respBody []byte
-	if respBody, err = getResponse(response); err != nil {
+	if respBody, err = getResponse(response); err != nil && err != CREATED {
 		return err
 	}
 
-	// All because of weird box's return format
+	// All because of weird box's return format of response body
 	var m map[string]json.RawMessage
 	err = json.Unmarshal(respBody, &m)
 	if err != nil {
@@ -217,4 +261,20 @@ func (f *File) UploadFile(box *Box, path string, parent *Folder) error {
 		return err
 	}
 	return nil
+}
+
+// UploadFile directly uploads the file on the box server. The name is
+// taken from the Name attribute of the file object (if it is empty,
+// file name is chosen). Note than only parent id is required apriori
+// for the parent folder.
+func (f *File) UploadFile(box *Box, path string, parent *Folder) error {
+	if f.Name == "" {
+		f.Name = filepath.Base(path)
+	}
+	file, err := os.Open(path)
+	defer file.Close()
+	if err != nil {
+		return err
+	}
+	return f.Upload(box, file, parent)
 }

@@ -48,7 +48,8 @@ func (f *Folder) Items(box *Box) ([]Entity, error) {
 }
 
 // Create creates a sub folder under the given folder. It returns the
-// created folder. Note that only Id is required apriori.
+// created folder. Note that only Id of the parent folder is required
+// apriori.
 func (f *Folder) Create(box *Box, name string) (*Folder, error) {
 	if f.Id == "" {
 		return nil, errors.New("Empty id while using Create")
@@ -59,11 +60,12 @@ func (f *Folder) Create(box *Box, name string) (*Folder, error) {
 
 	body, err := box.doRequest("POST", "folders", nil, reqBody)
 
-	if err == nil {
-		err = json.Unmarshal(body, &fold)
-		return &fold, err
+	if err != nil && err != CREATED {
+		return nil, err
 	}
-	return nil, err
+
+	err = json.Unmarshal(body, &fold)
+	return &fold, err
 }
 
 // Get populates the fields of the struct. Node that only Id is
@@ -90,6 +92,10 @@ func (f *Folder) Delete(box *Box) error {
 
 	rawurl := fmt.Sprintf("folders/%s", f.Id)
 	_, err := box.doRequest("DELETE", rawurl, &url.Values{"recursive": {"true"}}, nil)
+
+	if err == NO_CONTENT {
+		return nil
+	}
 
 	return err
 }

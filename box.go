@@ -2,7 +2,6 @@ package box
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"github.com/golang/oauth2"
 	"io"
@@ -117,11 +116,11 @@ func getResponse(r *http.Response) ([]byte, error) {
 	if b, err = ioutil.ReadAll(r.Body); err != nil {
 		return nil, err
 	}
-	switch r.StatusCode {
-	case http.StatusOK, http.StatusCreated, http.StatusAccepted, http.StatusNoContent:
+	err = toError(r.StatusCode)
+	if err == SUCCESS {
 		return b, nil
 	}
-	return nil, errors.New(fmt.Sprintf("unexpected HTTP status code %d", r.StatusCode))
+	return b, err // still returns b
 }
 
 // urlEncode encodes s for url

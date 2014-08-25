@@ -27,6 +27,7 @@ The supported features include
         * Move
         * Copy
         * Upload
+        * Download
 
 
 TODO
